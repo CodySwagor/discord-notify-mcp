@@ -91,18 +91,17 @@ blocked" and Claude will use it.
 ## The Notification hook
 
 Fires when Claude needs permission or has been waiting on your input. It reads
-`transcript_path` and composes a ping like:
+`transcript_path` and posts a Discord **embed**:
 
-```
-🔔 **P-2476** — Claude needs you
-📋 Solve P-2476
-> Claude needs your permission to run a Bash command
-🗣️ **You:** check again on the deploy
-🤖 **Claude:** …the tail of Claude's last message…
-```
+| Embed part | Source |
+| --- | --- |
+| Title — `🔔 <ticket> — Claude needs you` | ticket parsed from the conversation title (`ai-title`), falling back to the git branch |
+| Author | the conversation title (`ai-title`) |
+| Description | the notification message (what Claude is waiting on) |
+| `You said` field | your last prompt (`last-prompt`) |
+| Footer | git branch |
 
-The ticket is parsed from the conversation title (`ai-title`), falling back to
-the git branch name. Preview the output without sending:
+Preview the embed JSON without sending:
 
 ```bash
 DISCORD_NOTIFY_DRY_RUN=1 node hooks/notify.mjs < some-hook-payload.json
