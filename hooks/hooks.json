@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/notify.mjs", "${user_config.webhook_url}"]
+          }
+        ]
+      }
+    ]
+  }
+}
