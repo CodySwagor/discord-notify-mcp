@@ -62,9 +62,11 @@ the owner? My thumbnail change is unaffected.
 
 ## Notes
 
-- The webhook URL is read from `DISCORD_WEBHOOK_URL` in the environment; you
-  don't pass it. If the tool reports it's unset, tell the user to set it in
-  `~/.claude/settings.json` under `env`.
+- The webhook URL is supplied at plugin install time (the `webhook_url` user
+  config) and injected for you; you don't pass it. If the tool reports it's
+  unset, tell the user to reconfigure it with
+  `claude plugin install discord-notify@discord-notify --config webhook_url=...`
+  (or the `/plugin` configure flow).
 - An automatic `Notification` hook already fires when Claude is *waiting* for
   input. Use this skill for *deliberate* pings with a richer, hand-written
   summary, or when the user explicitly asks to be messaged.
