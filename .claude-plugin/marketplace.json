@@ -1,0 +1,14 @@
+{
+  "name": "discord-notify",
+  "description": "Discord notification tooling for Claude Code: an MCP tool, a ping-composing skill, and a Notification hook.",
+  "owner": {
+    "name": "Cody Swagor"
+  },
+  "plugins": [
+    {
+      "name": "discord-notify",
+      "source": "./",
+      "description": "Send Discord pings via webhook: an MCP tool, a skill, and a Notification hook."
+    }
+  ]
+}
