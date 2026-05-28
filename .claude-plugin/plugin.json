@@ -1,0 +1,30 @@
+{
+  "name": "discord-notify",
+  "displayName": "Discord Notify",
+  "version": "1.0.0",
+  "description": "Send Discord pings via webhook: an MCP tool, a skill that composes good pings, and a Notification hook that fires when Claude needs you.",
+  "author": {
+    "name": "Cody Swagor"
+  },
+  "homepage": "https://github.com/CodySwagor/discord-notify-mcp",
+  "repository": "https://github.com/CodySwagor/discord-notify-mcp",
+  "license": "MIT",
+  "keywords": ["notifications", "discord", "mcp", "hooks", "webhook"],
+  "userConfig": {
+    "webhook_url": {
+      "type": "string",
+      "title": "Discord Webhook URL",
+      "description": "Discord incoming webhook URL. Create one in Discord: Server Settings -> Integrations -> Webhooks -> New Webhook -> Copy URL.",
+      "sensitive": true
+    }
+  },
+  "mcpServers": {
+    "discord-notify": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/src/server.js"],
+      "env": {
+        "DISCORD_WEBHOOK_URL": "${user_config.webhook_url}"
+      }
+    }
+  }
+}
