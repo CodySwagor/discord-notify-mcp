@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { postToDiscord } from '../src/discord.js';
+import { colorForTitle } from '../src/color.js';
 
 /**
  * Claude Code Notification hook. Fires when Claude needs your input (permission
@@ -13,7 +14,6 @@ import { postToDiscord } from '../src/discord.js';
  */
 
 const TICKET_RE = /\b[pP]-\d{1,6}\b/;
-const EMBED_COLOR = 0xf59e0b; // amber — "needs your attention"
 const FIELD_LIMIT = 1024; // Discord embed field value cap
 
 const readStdin = () =>
@@ -72,7 +72,7 @@ const buildEmbed = ({ payload, aiTitle, lastPrompt }) => {
   const ask = payload.message?.trim() || 'Claude is waiting for your input.';
 
   return {
-    color: EMBED_COLOR,
+    color: colorForTitle(aiTitle),
     title: ticket ? `🔔 ${ticket} — Claude needs you` : '🔔 Claude needs you',
     description: truncate(ask, 400),
     ...(aiTitle && { author: { name: truncate(aiTitle, 256) } }),
