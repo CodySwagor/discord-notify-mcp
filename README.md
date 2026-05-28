@@ -14,8 +14,13 @@ Three ways to use it:
   when Claude is **waiting on you** — it mines the session transcript for the
   conversation title, ticket, your last prompt, and Claude's last message.
 
-The webhook URL is **never stored in this repo**. It's read from the
+The webhook URL is **never stored in this repo**. It's supplied once at install
+time (stored securely by Claude Code) and reaches the MCP server and hook as the
 `DISCORD_WEBHOOK_URL` environment variable.
+
+This repo is a self-contained **Claude Code plugin**: it bundles the MCP server,
+the skill, and the Notification hook, and has **no runtime dependencies** (pure
+Node — nothing to `npm install`). Install it straight from GitHub.
 
 ## Setup
 
@@ -24,63 +29,38 @@ The webhook URL is **never stored in this repo**. It's read from the
 In Discord: **Server Settings → Integrations → Webhooks → New Webhook**, pick the
 target channel, and **Copy Webhook URL**.
 
-### 2. Install
+### 2. Install the plugin
+
+The repo is its own plugin marketplace. Add it, then install:
 
 ```bash
-git clone git@github.com:CodySwagor/discord-notify-mcp.git
-cd discord-notify-mcp
-npm install
+claude plugin marketplace add CodySwagor/discord-notify-mcp
+claude plugin install discord-notify@discord-notify
 ```
 
-### 3. Register with Claude Code (global)
+You'll be prompted for the **Discord Webhook URL** (the plugin's `webhook_url`
+user config). It's stored securely and injected into both the MCP server and the
+hook — you never edit `settings.json` by hand. To pass it non-interactively:
 
-Add to `~/.claude/settings.json`. Put the secret in the top-level `env` so both
-the MCP server and the hooks can read it.
-
-```jsonc
-{
-  "env": {
-    "DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/XXXX/XXXX"
-  },
-  "mcpServers": {
-    "discord-notify": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/discord-notify-mcp/src/server.js"]
-    }
-  },
-  "hooks": {
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /ABSOLUTE/PATH/TO/discord-notify-mcp/hooks/notify.mjs"
-          }
-        ]
-      }
-    ]
-  }
-}
+```bash
+claude plugin install discord-notify@discord-notify \
+  --config webhook_url="https://discord.com/api/webhooks/XXXX/XXXX"
 ```
 
-Restart Claude Code (or `/hooks` reload) to pick up the changes.
+Restart Claude Code to pick up the plugin. That's it — the MCP tool, the skill,
+and the Notification hook are all wired up.
 
 > Only the `Notification` event is wired — it fires when Claude needs permission
 > or has been waiting on your input, i.e. exactly when you need to come back. The
 > `Stop` event (end of *every* turn) is intentionally not used; it pings on every
 > response and drowns out the signal. Add it yourself if you want it.
 
-### 4. Install the skill (optional)
-
-Copy the skill so Claude can send deliberate, well-composed pings on request:
+### Updating / removing
 
 ```bash
-mkdir -p ~/.claude/skills/discord-notify
-cp skill/discord-notify/SKILL.md ~/.claude/skills/discord-notify/SKILL.md
+claude plugin update discord-notify       # pull the latest from GitHub
+claude plugin uninstall discord-notify    # remove it
 ```
-
-Then just say "ping me on Discord when you're done" or "notify me if you get
-blocked" and Claude will use it.
 
 ## The MCP tool
 
