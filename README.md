@@ -100,6 +100,7 @@ Fires when Claude needs permission or has been waiting on your input. It reads
 | Description | the notification message (what Claude is waiting on) |
 | `You said` field | your last prompt (`last-prompt`) |
 | Footer | git branch |
+| Color | deterministically derived from the conversation title (`ai-title`) — same title always gets the same color, hues spread across the full spectrum so different conversations stand out at a glance; amber fallback when there's no title |
 
 Preview the embed JSON without sending:
 
