@@ -6,14 +6,15 @@ import { postToDiscord } from '../src/discord.js';
 /**
  * Claude Code Notification hook. Fires when Claude needs your input (permission
  * prompt or idle-waiting). Reads the hook payload from stdin, mines the session
- * transcript for context (conversation title, ticket, your last prompt, Claude's
- * last message), and posts a rich "come talk to me" ping to Discord.
+ * transcript for context (conversation title, ticket, your last prompt), and
+ * posts a clean Discord embed asking you to come back.
  *
  * Soft-fails (exit 0) so a Discord/transcript problem never blocks the session.
  */
 
 const TICKET_RE = /\b[pP]-\d{1,6}\b/;
-const TOTAL_LIMIT = 1900; // headroom under Discord's 2000-char cap
+const EMBED_COLOR = 0xf59e0b; // amber — "needs your attention"
+const FIELD_LIMIT = 1024; // Discord embed field value cap
 
 const readStdin = () =>
   new Promise((resolve) => {
@@ -31,7 +32,7 @@ const truncate = (s, n) => {
 };
 
 const mineTranscript = (path) => {
-  const out = { aiTitle: null, lastPrompt: null, lastAssistant: null };
+  const out = { aiTitle: null, lastPrompt: null };
   if (!path) return out;
   let lines;
   try {
@@ -48,14 +49,6 @@ const mineTranscript = (path) => {
     }
     if (o.type === 'ai-title' && o.aiTitle) out.aiTitle = o.aiTitle;
     if (o.type === 'last-prompt' && o.lastPrompt) out.lastPrompt = o.lastPrompt;
-    if (o.type === 'assistant' && Array.isArray(o.message?.content)) {
-      const text = o.message.content
-        .filter((b) => b.type === 'text')
-        .map((b) => b.text)
-        .join('\n')
-        .trim();
-      if (text) out.lastAssistant = text;
-    }
   }
   return out;
 };
@@ -73,28 +66,21 @@ const branchName = (cwd) => {
   }
 };
 
-const buildMessage = ({ payload, aiTitle, lastPrompt, lastAssistant }) => {
+const buildEmbed = ({ payload, aiTitle, lastPrompt }) => {
   const branch = branchName(payload.cwd);
   const ticket = (aiTitle?.match(TICKET_RE) || branch?.match(TICKET_RE) || [])[0] || null;
   const ask = payload.message?.trim() || 'Claude is waiting for your input.';
 
-  const header = ticket ? `🔔 **${ticket}** — Claude needs you` : '🔔 **Claude needs you**';
-
-  const lines = [
-    header,
-    ...(aiTitle ? [`📋 ${truncate(aiTitle, 120)}`] : []),
-    `> ${truncate(ask, 300)}`,
-    ...(lastPrompt ? [`🗣️ **You:** ${truncate(lastPrompt, 280)}`] : []),
-  ];
-
-  // Fill remaining budget with Claude's last message (the most useful context).
-  const used = lines.join('\n').length;
-  const assistantBudget = TOTAL_LIMIT - used - 16;
-  if (lastAssistant && assistantBudget > 80) {
-    lines.push(`🤖 **Claude:** ${truncate(lastAssistant, assistantBudget)}`);
-  }
-
-  return lines.join('\n');
+  return {
+    color: EMBED_COLOR,
+    title: ticket ? `🔔 ${ticket} — Claude needs you` : '🔔 Claude needs you',
+    description: truncate(ask, 400),
+    ...(aiTitle && { author: { name: truncate(aiTitle, 256) } }),
+    ...(lastPrompt && {
+      fields: [{ name: 'You said', value: truncate(lastPrompt, FIELD_LIMIT) }],
+    }),
+    ...(branch && { footer: { text: branch } }),
+  };
 };
 
 const main = async () => {
@@ -109,16 +95,16 @@ const main = async () => {
     payload = {};
   }
 
-  const { aiTitle, lastPrompt, lastAssistant } = mineTranscript(payload.transcript_path);
-  const content = buildMessage({ payload, aiTitle, lastPrompt, lastAssistant });
+  const { aiTitle, lastPrompt } = mineTranscript(payload.transcript_path);
+  const embed = buildEmbed({ payload, aiTitle, lastPrompt });
 
   if (process.env.DISCORD_NOTIFY_DRY_RUN) {
-    process.stdout.write(`${content}\n`);
+    process.stdout.write(`${JSON.stringify(embed, null, 2)}\n`);
     return;
   }
 
   try {
-    await postToDiscord({ webhookUrl, content, username: 'Claude Code' });
+    await postToDiscord({ webhookUrl, embeds: [embed], username: 'Claude Code' });
   } catch {
     // soft-fail
   }
