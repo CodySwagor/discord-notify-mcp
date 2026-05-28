@@ -14,6 +14,16 @@ import { colorForTitle } from '../src/color.js';
  * Soft-fails (exit 0) so a Discord/transcript problem never blocks the session.
  */
 
+// Resolve the webhook from (in order): the first CLI arg — how the plugin's
+// hooks.json passes ${user_config.webhook_url}; DISCORD_WEBHOOK_URL — the manual
+// install / dry-run path; or CLAUDE_PLUGIN_OPTION_webhook_url — the userConfig
+// value Claude Code auto-exports to plugin subprocesses.
+const resolveWebhookUrl = () =>
+  process.argv[2] ||
+  process.env.DISCORD_WEBHOOK_URL ||
+  process.env.CLAUDE_PLUGIN_OPTION_webhook_url ||
+  '';
+
 const TICKET_RE = /\b[pP]-\d{1,6}\b/;
 const FIELD_LIMIT = 1024; // Discord embed field value cap
 
@@ -100,7 +110,7 @@ const buildEmbed = ({ payload, aiTitle, lastPrompt }) => {
 };
 
 const main = async () => {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  const webhookUrl = resolveWebhookUrl();
   if (!webhookUrl) return;
 
   const raw = await readStdin();
