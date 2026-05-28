@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { userInfo } from 'node:os';
 import { postToDiscord } from '../src/discord.js';
 import { colorForTitle } from '../src/color.js';
 
@@ -29,6 +30,21 @@ const readStdin = () =>
 const truncate = (s, n) => {
   const t = (s ?? '').trim();
   return t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t;
+};
+
+const webhookName = () => {
+  let name = '';
+  try {
+    name = userInfo().username || '';
+  } catch {
+    name = process.env.USER || process.env.LOGNAME || '';
+  }
+  const pascal = name
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join('');
+  return pascal || 'Claude Code';
 };
 
 const mineTranscript = (path) => {
@@ -104,7 +120,7 @@ const main = async () => {
   }
 
   try {
-    await postToDiscord({ webhookUrl, embeds: [embed], username: 'Claude Code' });
+    await postToDiscord({ webhookUrl, embeds: [embed], username: webhookName() });
   } catch {
     // soft-fail
   }
