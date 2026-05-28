@@ -1,0 +1,21 @@
+{
+  "name": "discord-notify-mcp",
+  "version": "1.0.0",
+  "description": "An MCP server (plus Claude Code hooks) that sends messages to a Discord channel via webhook.",
+  "type": "module",
+  "bin": {
+    "discord-notify-mcp": "src/server.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "notify": "node hooks/notify.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  }
+}
