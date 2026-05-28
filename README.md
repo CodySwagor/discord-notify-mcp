@@ -4,12 +4,15 @@ A tiny [MCP](https://modelcontextprotocol.io) server — plus a pair of Claude C
 hooks — that pushes messages to a Discord channel through an
 [incoming webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks).
 
-Two ways to use it:
+Three ways to use it:
 
 - **MCP tool** (`send_discord_message`): Claude can deliberately post a message
   mid-task ("ping me on Discord when the build finishes").
-- **Hooks** (`Stop`, `Notification`): the Claude Code harness auto-posts when a
-  turn completes or when Claude needs your input — even if you've walked away.
+- **Skill** (`discord-notify`): teaches Claude *when* and *how* to send a good
+  ping (ticket + a concise "what needs you" summary) via the MCP tool.
+- **Notification hook**: the Claude Code harness auto-posts a context-rich ping
+  when Claude is **waiting on you** — it mines the session transcript for the
+  conversation title, ticket, your last prompt, and Claude's last message.
 
 The webhook URL is **never stored in this repo**. It's read from the
 `DISCORD_WEBHOOK_URL` environment variable.
@@ -46,16 +49,6 @@ the MCP server and the hooks can read it.
     }
   },
   "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node /ABSOLUTE/PATH/TO/discord-notify-mcp/hooks/notify.mjs"
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "hooks": [
@@ -72,23 +65,48 @@ the MCP server and the hooks can read it.
 
 Restart Claude Code (or `/hooks` reload) to pick up the changes.
 
+> Only the `Notification` event is wired — it fires when Claude needs permission
+> or has been waiting on your input, i.e. exactly when you need to come back. The
+> `Stop` event (end of *every* turn) is intentionally not used; it pings on every
+> response and drowns out the signal. Add it yourself if you want it.
+
+### 4. Install the skill (optional)
+
+Copy the skill so Claude can send deliberate, well-composed pings on request:
+
+```bash
+mkdir -p ~/.claude/skills/discord-notify
+cp skill/discord-notify/SKILL.md ~/.claude/skills/discord-notify/SKILL.md
+```
+
+Then just say "ping me on Discord when you're done" or "notify me if you get
+blocked" and Claude will use it.
+
 ## The MCP tool
 
 | Tool | Arguments | Description |
 | --- | --- | --- |
 | `send_discord_message` | `content` (string, required), `username` (string, optional) | Posts `content` to the channel. `username` overrides the webhook display name for that message. |
 
-## The hooks
+## The Notification hook
 
-| Event | When it fires | Message |
-| --- | --- | --- |
-| `Stop` | Claude finishes a response turn | `✅ <project> — Claude finished and is ready for you.` |
-| `Notification` | Claude needs permission or has been waiting on you | `🔔 <project> — <notification text>` |
+Fires when Claude needs permission or has been waiting on your input. It reads
+`transcript_path` and composes a ping like:
 
-> **Noise note:** `Stop` fires at the *end of every turn*, so during active
-> back-and-forth you'll get a ping each time Claude responds. If that's too much,
-> remove the `Stop` block and keep only `Notification` (which fires just when
-> Claude is actually waiting on you).
+```
+🔔 **P-2476** — Claude needs you
+📋 Solve P-2476
+> Claude needs your permission to run a Bash command
+🗣️ **You:** check again on the deploy
+🤖 **Claude:** …the tail of Claude's last message…
+```
+
+The ticket is parsed from the conversation title (`ai-title`), falling back to
+the git branch name. Preview the output without sending:
+
+```bash
+DISCORD_NOTIFY_DRY_RUN=1 node hooks/notify.mjs < some-hook-payload.json
+```
 
 ## Manual test
 
